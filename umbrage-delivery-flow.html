@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Umbrage Delivery Process — End to End Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #16161a;
+    --border: #2a2a30;
+    --text: #e8e8ec;
+    --muted: #7a7a8c;
+    --p0: #3a8fd4;
+    --p0-dim: #1a3d5c;
+    --p1: #9b6fd4;
+    --p1-dim: #3d2a5c;
+    --p2: #d4a83a;
+    --p2-dim: #5c4418;
+    --p3: #3ad48a;
+    --p3-dim: #1a5c3d;
+    --gate: #d45a3a;
+    --gate-dim: #5c2418;
+    --connector: #3a3a46;
+    --arrow: #5a5a70;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 48px 32px 80px;
+    min-width: 1100px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .header p {
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  /* FLOW WRAPPER */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  /* PHASE BLOCK */
+  .phase {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .phase-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+  }
+
+  .phase-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  /* STEP NODE */
+  .step {
+    flex: 1;
+    min-width: 120px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 14px 12px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .step:hover { border-color: var(--muted); }
+
+  .step-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+  }
+  .step-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #fff;
+  }
+  .step-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ARROW between steps */
+  .arrow {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--arrow);
+    font-size: 16px;
+    padding: 0 2px;
+    user-select: none;
+  }
+  .arrow::after {
+    content: '→';
+    font-size: 18px;
+  }
+
+  /* GATE NODE */
+  .gate {
+    width: 220px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    border: 1px solid var(--gate);
+    padding: 14px 16px;
+    background: var(--gate-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+  }
+  .gate-icon { font-size: 16px; }
+  .gate-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .gate-items {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #d4806a;
+    line-height: 1.7;
+  }
+
+  /* CONNECTOR (vertical arrow between phases) */
+  .connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 0;
+    color: var(--arrow);
+    font-size: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .connector::after { content: '↓'; }
+  .connector-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* GATE CONNECTOR — shown between phase and gate */
+  .gate-row {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    padding-right: 20px;
+  }
+
+  /* PHASE COLORS */
+  .phase.p0 { border-color: var(--p0-dim); }
+  .phase.p0 .phase-header { background: #0d2035; }
+  .phase.p0 .phase-tag { background: var(--p0-dim); color: var(--p0); }
+  .phase.p0 .step { border-color: #1e3550; }
+  .phase.p0 .step-num { color: var(--p0); opacity: 1; }
+
+  .phase.p1 { border-color: var(--p1-dim); }
+  .phase.p1 .phase-header { background: #1e1030; }
+  .phase.p1 .phase-tag { background: var(--p1-dim); color: var(--p1); }
+  .phase.p1 .step { border-color: #2e1a48; }
+  .phase.p1 .step-num { color: var(--p1); opacity: 1; }
+
+  .phase.p2 { border-color: var(--p2-dim); }
+  .phase.p2 .phase-header { background: #221a08; }
+  .phase.p2 .phase-tag { background: var(--p2-dim); color: var(--p2); }
+  .phase.p2 .step { border-color: #3a2c10; }
+  .phase.p2 .step-num { color: var(--p2); opacity: 1; }
+
+  .phase.p3 { border-color: var(--p3-dim); }
+  .phase.p3 .phase-header { background: #0a2018; }
+  .phase.p3 .phase-tag { background: var(--p3-dim); color: var(--p3); }
+  .phase.p3 .step { border-color: #1a3828; }
+  .phase.p3 .step-num { color: var(--p3); opacity: 1; }
+
+  /* EXIT GATE colors per phase */
+  .gate.g1 { border-color: var(--p1); background: #1e1030; }
+  .gate.g1 .gate-items { color: #c49de8; }
+  .gate.g2 { border-color: var(--p2); background: #221a08; }
+  .gate.g2 .gate-items { color: #e8c96a; }
+  .gate.g3 { border-color: var(--p3); background: #0a2018; }
+  .gate.g3 .gate-items { color: #6ae8b0; }
+
+  /* SPRINT LOOP annotation */
+  .loop-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #1e1a10;
+    border: 1px dashed #3a3010;
+    border-radius: 6px;
+    margin-top: -12px;
+    margin-bottom: 8px;
+    align-self: flex-start;
+    margin-left: 20px;
+  }
+  .loop-note span {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--p2);
+    letter-spacing: 0.06em;
+  }
+  .loop-arrow {
+    font-size: 14px;
+    color: var(--p2);
+  }
+
+  /* PARALLEL swim lane */
+  .parallel {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px dashed #2a2a40;
+    padding: 14px 20px;
+    background: #13131a;
+    margin-top: 12px;
+  }
+  .parallel-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .parallel-items {
+    display: flex;
+    gap: 10px;
+  }
+  .parallel-item {
+    flex: 1;
+    background: #1a1a24;
+    border: 1px solid #2a2a3a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .parallel-item strong {
+    display: block;
+    color: #a0a0bc;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+
+  /* START / END capsule */
+  .capsule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+  .capsule.start { background: #1e2840; border: 1px solid var(--p0); }
+  .capsule.end   { background: #0e2a1a; border: 1px solid var(--p3); }
+
+  /* GATE ROW layout */
+  .phase-gate-row {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .phase-gate-row .phase { flex: 1; }
+  .gate-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-top: 60px;
+  }
+  .gate-side .gate { width: 180px; }
+  .gate-pass {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Umbrage Delivery Process</h1>
+  <p>end-to-end engagement flow · product engineering track</p>
+</div>
+
+<div class="flow">
+
+  <!-- START -->
+  <div class="capsule start">🚀 Engagement Start</div>
+  <div class="connector"></div>
+
+  <!-- PHASE 0 -->
+  <div class="phase p0">
+    <div class="phase-header">
+      <span class="phase-tag">Phase 0</span>
+      <span class="phase-title">Engagement Kickoff</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-num">0.1</div>
+        <div class="step-name">On-ramp</div>
+        <div class="step-desc">Staffed onto existing · New kickoff · BD / pre-sales support</div>
+      </div>
+      <div class="arrow"></div>
+      <div class="step">
+        <div class="step-num">0.2</div>
+        <div class="step-name">Engagement Type Set</div>
+        <div class="step-desc">Product Eng · Data · AI/ML · Platform · Modernization · PoC · Tech Assessment</div>
+      </div>
+      <div class="arrow"></div>
+      <div class="step">
+        <div class="step-num">0.3</div>
+        <div class="step-name">Team & Scope Agreed</div>
+        <div class="step-desc">Contract signed · Team staffed · Client sponsor confirmed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <span class="connector-label">define & design begins</span>
+  </div>
+
+  <!-- PHASE 1 with gate -->
+  <div class="phase-gate-row">
+    <div class="phase p1">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 1</span>
+        <span class="phase-title">Define & Design</span>
+      </div>
+      <div class="phase-body">
+        <div class="step">
+          <div class="step-num">1.1</div>
+          <div class="step-name">Mobilization</div>
+          <div class="step-desc">Team formed · Tooling set up · Kickoff workshop · RACI · WSR cadence</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">1.2</div>
+          <div class="step-name">Discovery</div>
+          <div class="step-desc">User interviews · Journey mapping · Cagan's 4 risks · Double Diamond · OST</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">1.3</div>
+          <div class="step-name">Define</div>
+          <div class="step-desc">Problem statements · Personas · HMW reframing · Prioritization</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">1.4</div>
+          <div class="step-name">Conceptualize</div>
+          <div class="step-desc">Sketching · Design sprints · Lo–mid fi prototypes · Stakeholder feedback</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">1.5</div>
+          <div class="step-name">Prep for Sprint</div>
+          <div class="step-desc">Hi-fi designs · Usability testing · KPIs · Backlog written · Eng scoping</div>
+        </div>
+      </div>
+    </div>
+    <div class="gate-side">
+      <div class="gate g1">
+        <div class="gate-icon">✅</div>
+        <div class="gate-name">D&D Exit Gate</div>
+        <div class="gate-items">Sprint-ready backlog?<br>Team & client aligned?<br>Eng can estimate?</div>
+      </div>
+      <div class="gate-pass">all three → proceed</div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <span class="connector-label">sprints begin</span>
+  </div>
+
+  <!-- PHASE 2 with gate -->
+  <div class="phase-gate-row">
+    <div class="phase p2">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 2</span>
+        <span class="phase-title">Develop & Deliver — Sprint Loop</span>
+      </div>
+      <div class="phase-body">
+        <div class="step">
+          <div class="step-num">2.1</div>
+          <div class="step-name">Sprint Planning</div>
+          <div class="step-desc">Day 1 · Sprint Goal set · Stories pulled from backlog</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">2.2</div>
+          <div class="step-name">Daily Standups</div>
+          <div class="step-desc">15 min · Every day · Progress · Blockers · Dependencies</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">2.3</div>
+          <div class="step-name">Dev + QA</div>
+          <div class="step-desc">Drafted → In Dev → In QA → Done · Dev → Staging → UAT → Prod</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">2.4</div>
+          <div class="step-name">Backlog Refinement</div>
+          <div class="step-desc">Mid-sprint · Next sprint groomed · Stories meet Definition of Ready</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">2.5</div>
+          <div class="step-name">Sprint Review</div>
+          <div class="step-desc">Demo to stakeholders · Feedback captured · Backlog updated</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">2.6</div>
+          <div class="step-name">Retrospective</div>
+          <div class="step-desc">How we worked · Specific improvements committed · Loop repeats ↩</div>
+        </div>
+      </div>
+
+      <!-- PARALLEL -->
+      <div class="parallel" style="margin: 0 20px 20px;">
+        <div class="parallel-label">Running in parallel throughout Phase 2</div>
+        <div class="parallel-items">
+          <div class="parallel-item"><strong>Continual Discovery</strong>User interviews & analytics as we ship</div>
+          <div class="parallel-item"><strong>Change Management</strong>Preparing client org to adopt the product</div>
+          <div class="parallel-item"><strong>Program Management</strong>RAID log · Decision log · Dependencies</div>
+          <div class="parallel-item"><strong>Stakeholder Comms</strong>Weekly Status Reports · Risks surfaced early</div>
+        </div>
+      </div>
+    </div>
+    <div class="gate-side">
+      <div class="gate g2">
+        <div class="gate-icon">✅</div>
+        <div class="gate-name">Sprint Exit Gate</div>
+        <div class="gate-items">Roadmap delivered?<br>Client accepted work?<br>Ready for handoff?</div>
+      </div>
+      <div class="gate-pass">all three → proceed</div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <span class="connector-label">handoff begins</span>
+  </div>
+
+  <!-- PHASE 3 with gate -->
+  <div class="phase-gate-row">
+    <div class="phase p3">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 3</span>
+        <span class="phase-title">Industrialize & Support</span>
+      </div>
+      <div class="phase-body">
+        <div class="step">
+          <div class="step-num">3.1</div>
+          <div class="step-name">Production Launch</div>
+          <div class="step-desc">Go-to-market · Readiness checks · Feature flags · Staged rollout</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">3.2</div>
+          <div class="step-name">Operational Handoff</div>
+          <div class="step-desc">Runbooks · On-call rotations · Monitoring dashboards · Umbrage pairs with client eng</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">3.3</div>
+          <div class="step-name">Knowledge Transfer</div>
+          <div class="step-desc">Docs completed · Architecture walkthroughs · Decision log finalized</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="step">
+          <div class="step-num">3.4</div>
+          <div class="step-name">Learning Loops</div>
+          <div class="step-desc">A/B tests · Telemetry review · Outcome validation vs D&D goals</div>
+        </div>
+      </div>
+    </div>
+    <div class="gate-side">
+      <div class="gate g3">
+        <div class="gate-icon">✅</div>
+        <div class="gate-name">Engagement Close</div>
+        <div class="gate-items">Client self-sufficient?<br>Docs current?<br>Outcomes hit?</div>
+      </div>
+      <div class="gate-pass">all three → closed</div>
+    </div>
+  </div>
+
+  <div class="connector"></div>
+
+  <!-- END -->
+  <div class="capsule end">🏁 Engagement Complete</div>
+
+</div>
+
+</body>
+</html>
